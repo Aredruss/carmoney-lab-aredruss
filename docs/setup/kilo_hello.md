@@ -1,0 +1,5 @@
+Готов
+1) Учебный сервис предварительной оценки заявки на заём под ПТС: принимает заявку (VIN, год, пробег, оценочная стоимость, сумма, срок), считает LTV и возвращает approve / review / reject; все данные синтетические (README.md:1–10).
+2) Makefile: make up (docker compose up -d --build, порт ${APP_PORT:-8080}), make down, make ps, make logs, make install (composer install), make test (vendor/bin/phpunit локально или через контейнер), make lint (php -l по backend/ и tests/), make seed (mysql -ulab -plab carmoney_lab < db/seed.sql). docker-compose.yml: сервисы backend (php -S на 8080, БД db — MySQL 8.0 на ${DB_PORT:-3307}, том db-data, init через db/schema.sql и db/seed.sql).
+3) backend/src/Domain — DecisionEngine.php (рядом LtvCalculator, AssessmentService, валидаторы).
+модель: training-2026-09-minimax-m3
