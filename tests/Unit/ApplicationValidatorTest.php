@@ -63,6 +63,13 @@ final class ApplicationValidatorTest extends TestCase
         }
     }
 
+    public function testEmptyStringMileageIsCoercedToZero(): void
+    {
+        $result = $this->validator->validate($this->validPayload(['mileage' => '']));
+
+        self::assertSame(0, $result['mileage']);
+    }
+
     public function testCollectsAllErrorsAtOnce(): void
     {
         try {
