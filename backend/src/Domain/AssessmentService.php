@@ -7,9 +7,11 @@ namespace CarMoneyLab\Domain;
 /**
  * Предварительная оценка заявки: валидация -> LTV -> решение -> лимит.
  *
- * Лимит сейчас равен запрошенной сумме при approve и нулю в остальных случаях.
- * Расчёт лимита по максимальному LTV для возраста авто (справочник
- * rules.ltv_by_age) — задача LOAN-12, она ещё не сделана.
+ * Решение зависит от LTV и пробега: пробег выше порога review_mileage_km
+ * переводит решение в review поверх расчёта по LTV. Лимит равен запрошенной
+ * сумме при approve и нулю в остальных случаях. Расчёт лимита по максимальному
+ * LTV для возраста авто (справочник rules.ltv_by_age) — задача LOAN-12,
+ * она ещё не сделана.
  */
 final class AssessmentService
 {
@@ -18,6 +20,7 @@ final class AssessmentService
         private readonly LtvCalculator $ltvCalculator,
         private readonly DecisionEngine $decisionEngine,
         private readonly VehicleAge $vehicleAge,
+        private readonly int $reviewMileageKm,
     ) {
     }
 
@@ -31,6 +34,10 @@ final class AssessmentService
 
         $ltv = $this->ltvCalculator->calculate($input['requested_amount'], $input['market_value']);
         $decision = $this->decisionEngine->decide($ltv);
+
+        if ($input['mileage'] > $this->reviewMileageKm) {
+            $decision = DecisionEngine::REVIEW;
+        }
 
         return [
             'vehicle_age' => $this->vehicleAge->inYears($input['year']),

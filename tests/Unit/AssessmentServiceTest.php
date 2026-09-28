@@ -26,16 +26,17 @@ final class AssessmentServiceTest extends TestCase
             new LtvCalculator(),
             new DecisionEngine($rules['ltv']),
             $age,
+            $rules['vehicle']['review_mileage_km'],
         );
     }
 
     /** @return array<string,mixed> */
-    private function payload(int $amount, int $marketValue): array
+    private function payload(int $amount, int $marketValue, int $mileage = 96000): array
     {
         return [
             'vin' => 'XTA21099998765432',
             'year' => (int) date('Y') - 4,
-            'mileage' => 96000,
+            'mileage' => $mileage,
             'market_value' => $marketValue,
             'requested_amount' => $amount,
             'term_months' => 24,
@@ -68,5 +69,40 @@ final class AssessmentServiceTest extends TestCase
         self::assertSame(95.0, $result['ltv']);
         self::assertSame(DecisionEngine::REJECT, $result['decision']);
         self::assertSame(0, $result['approved_limit']);
+    }
+
+    public function testApprovesMileageBelowReviewThreshold(): void
+    {
+        $result = $this->service->assess($this->payload(450000, 900000, 99999));
+
+        self::assertSame(DecisionEngine::APPROVE, $result['decision']);
+        self::assertSame(450000, $result['approved_limit']);
+    }
+
+    public function testApprovesMileageAtReviewThresholdInclusive(): void
+    {
+        $result = $this->service->assess($this->payload(450000, 900000, 400000));
+
+        self::assertSame(DecisionEngine::APPROVE, $result['decision']);
+        self::assertSame(450000, $result['approved_limit']);
+    }
+
+    public function testSendsMileageAboveReviewThresholdToReview(): void
+    {
+        $result = $this->service->assess($this->payload(450000, 900000, 400001));
+
+        self::assertSame(DecisionEngine::REVIEW, $result['decision']);
+        self::assertSame(0, $result['approved_limit']);
+    }
+
+    public function testEmptyStringMileageIsCoercedToZeroAndApproved(): void
+    {
+        $payload = $this->payload(450000, 900000, 0);
+        $payload['mileage'] = '';
+
+        $result = $this->service->assess($payload);
+
+        self::assertSame(DecisionEngine::APPROVE, $result['decision']);
+        self::assertSame(450000, $result['approved_limit']);
     }
 }
